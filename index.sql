@@ -64,7 +64,7 @@ drop table if exists talabalar;
 
 create table talabalar (
   student_id serial primary key,
-  full_name text,
+  full_name  varchar(50) not null,
   age int,
   city text,
   grade int,
@@ -83,7 +83,7 @@ drop table if exists oqituvchilar;
 
 create table oqituvchilar (
   teacher_id serial primary key,
-  full_name text,
+  full_name varchar(50) not null,
   city text
 );
 
@@ -109,7 +109,7 @@ insert into kurslar (course_name) values
 insert into talabalar (full_name, age, city, grade, birth_date, course_id) values
 ('shoxrux', 20, 'toshkent', 85, '2004-05-12', 1),
 ('sardor', 22, 'samarqand', 90, '2003-03-10', 2),
-('shahlo', 19, 'xorazm', 75, '2005-01-01', 1),
+('shahboz', 19, 'xorazm', 75, '2005-01-01', 1),
 ('ali', 24, 'toshkent', 88, '2002-09-09', 3),
 ('shoira', 21, 'buxoro', 92, '2003-07-07', 2);
 
@@ -185,3 +185,109 @@ from talabalar
 union
 select city, 'oqituvchi' as shaxs_turi
 from oqituvchilar;
+
+
+--------------------------3- dars----------------------------
+
+drop database if exists shop_db;
+create database shop_db;
+\c shop_db
+
+-- create
+
+-- customers
+create table customers (
+  id serial primary key,
+  name text,
+  phone text
+);
+
+-- products
+
+create table products (
+  id serial primary key,
+  name text,
+  price int
+);
+
+
+-- orders
+
+create table orders (
+  id serial primary key,
+  customer_id int,
+  product_id int,
+  quantity int,
+
+  foreign key (customer_id) references customers(id),
+  foreign key (product_id) references products(id)
+);
+
+--- add 
+-- customers
+insert into customers (name, phone) values
+('ali', '998901111111'),
+('vali', '998902222222'),
+('hasan', '998903333333'),
+('husan', '998904444444'),
+('shahboz', '998905555555');
+
+-- products
+
+insert into products (name, price) values
+('telefon', 300),
+('noutbuk', 800),
+('quloqchin', 50),
+('klaviatura', 40),
+('sichqoncha', 25);
+
+-- orders
+
+insert into orders (customer_id, product_id, quantity) values
+(1, 1, 1),
+(1, 3, 2),
+(2, 2, 1),
+(3, 5, 3),
+(4, 1, 1);
+
+-- 2 vazifa ---
+
+create table students (
+  id serial primary key,
+  name text
+);
+
+create table courses (
+  id serial primary key,
+  name text
+);
+
+create table enrollments (
+  student_id int,
+  course_id int,
+
+  foreign key (student_id) references students(id),
+  foreign key (course_id) references courses(id)
+);
+
+-- add
+
+insert into students (name) values
+('ali'),
+('vali'),
+('hasan'),
+('husan'),
+('shahboz');
+
+insert into courses (name) values
+('backend'),
+('frontend'),
+('database');
+
+
+insert into enrollments (student_id, course_id) values
+(1, 1),
+(1, 2),
+(2, 1),
+(3, 3),
+(4, 2);

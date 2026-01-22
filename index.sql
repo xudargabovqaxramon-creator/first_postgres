@@ -291,3 +291,190 @@ insert into enrollments (student_id, course_id) values
 (2, 1),
 (3, 3),
 (4, 2);
+
+
+----------------------4 -  dars-------------------------------------
+
+
+create table if not exists students (
+  id serial primary key,
+  full_name text,
+  birth_date date
+);
+
+create table if not exists courses (
+  id serial primary key,
+  name text
+);
+
+create table if not exists enrollments (
+  student_id int,
+  course_id int,
+  grade int,
+  enrolled_at date default current_date,
+
+  foreign key (student_id) references students(id),
+  foreign key (course_id) references courses(id)
+);
+
+create table if not exists notifications (
+  id serial primary key,
+  message text,
+  created_at timestamp default current_timestamp
+);
+
+
+----- Function  calculate--------------
+
+create or replace function student_age(birth date)
+returns int
+language plpgsql
+as $$
+begin
+  return date_part('year', age(birth));
+end;
+$$;
+
+
+
+select full_name, student_age(birth_date) as age
+from students;
+
+
+--------kursga ro'yhatga olish-----------
+
+create or replace procedure add_students_to_course(
+  p_course_id int,
+  p_student_ids int[]
+)
+language plpgsql
+as $$
+declare
+  sid int;
+begin
+  foreach sid in array p_student_ids loop
+    insert into enrollments(student_id, course_id)
+    values (sid, p_course_id);
+  end loop;
+end;
+$$;
+ 
+
+
+call add_students_to_course(1, array[1,2,3]);
+
+
+-------------trigger baho pasaysa xabara yuborish-------
+
+create or replace function grade_decrease_notify()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.grade < old.grade then
+    insert into notifications(message)
+    values ('sizning baho pastlashdi');
+  end if;
+
+  return new;
+end;
+$$;
+
+
+create trigger trg_grade_decrease
+after update on enrollments
+for each row
+execute function grade_decrease_notify();
+
+
+
+------------ O'rtacha baho---------------
+
+create or replace function student_avg_grade(p_student_id int)
+returns numeric
+language plpgsql
+as $$
+declare
+  avg_grade numeric;
+begin
+  select avg(grade)
+  into avg_grade
+  from enrollments
+  where student_id = p_student_id;
+
+  return avg_grade;
+end;
+$$;
+ 
+
+select student_avg_grade(1);
+
+
+
+------------ Qayta yoizilishni taqiqlash -----------------
+
+create or replace function prevent_duplicate_enrollment()
+returns trigger
+language plpgsql
+as $$
+begin
+  if exists (
+    select 1 from enrollments
+    where student_id = new.student_id
+    and course_id = new.course_id
+  ) then
+    raise exception 'talaba bu kursga allaqachon yozilgan';
+  end if;
+
+  return new;
+end;
+$$;
+
+
+create trigger trg_prevent_duplicate
+before insert on enrollments
+for each row
+execute function prevent_duplicate_enrollment();
+
+
+----------------2-topshiriq----
+---- best student----------
+
+create or replace function best_student_in_course(p_course_id int)
+returns table(student_name text, grade int, enrolled_at date)
+language plpgsql
+as $$
+begin
+  return query
+  select s.full_name, e.grade, e.enrolled_at
+  from enrollments e
+  join students s on s.id = e.student_id
+  where e.course_id = p_course_id
+  order by e.grade desc
+  limit 1;
+end;
+$$;
+
+
+select * from best_student_in_course(1);
+
+
+
+-----all student------------
+
+create or replace procedure course_student_count(
+  p_course_id int,
+  out total int
+)
+language plpgsql
+as $$
+begin
+  select count(*)
+  into total
+  from enrollments
+  where course_id = p_course_id;
+end;
+$$;
+
+
+call course_student_count(1, null);
